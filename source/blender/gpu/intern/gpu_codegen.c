@@ -43,7 +43,7 @@
 #include "GPU_extensions.h"
 #include "GPU_material.h"
 #include "GPU_shader.h"
-#include "GPU_uniformbuffer.h"
+#include "GPU_uniform_buffer.h"
 #include "GPU_vertex_format.h"
 
 #include "BLI_sys_types.h" /* for intptr_t support */
@@ -111,11 +111,11 @@ static GPUPass *gpu_pass_cache_resolve_collision(GPUPass *pass,
   BLI_spin_lock(&pass_cache_spin);
   /* Collision, need to strcmp the whole shader. */
   for (; pass && (pass->hash == hash); pass = pass->next) {
-    if ((defs != NULL) && (strcmp(pass->defines, defs) != 0)) { /* Pass */
+    if ((defs != NULL) && (!STREQ(pass->defines, defs))) { /* Pass */
     }
-    else if ((geom != NULL) && (strcmp(pass->geometrycode, geom) != 0)) { /* Pass */
+    else if ((geom != NULL) && (!STREQ(pass->geometrycode, geom))) { /* Pass */
     }
-    else if ((strcmp(pass->fragmentcode, frag) == 0) && (strcmp(pass->vertexcode, vert) == 0)) {
+    else if ((!STREQ(pass->fragmentcode, frag) == 0) && (STREQ(pass->vertexcode, vert))) {
       BLI_spin_unlock(&pass_cache_spin);
       return pass;
     }
@@ -220,63 +220,61 @@ static const char *gpu_builtin_name(eGPUBuiltin builtin)
   if (builtin == GPU_VIEW_MATRIX) {
     return "unfviewmat";
   }
-  else if (builtin == GPU_OBJECT_MATRIX) {
+  if (builtin == GPU_OBJECT_MATRIX) {
     return "unfobmat";
   }
-  else if (builtin == GPU_INVERSE_VIEW_MATRIX) {
+  if (builtin == GPU_INVERSE_VIEW_MATRIX) {
     return "unfinvviewmat";
   }
-  else if (builtin == GPU_INVERSE_OBJECT_MATRIX) {
+  if (builtin == GPU_INVERSE_OBJECT_MATRIX) {
     return "unfinvobmat";
   }
-  else if (builtin == GPU_LOC_TO_VIEW_MATRIX) {
+  if (builtin == GPU_LOC_TO_VIEW_MATRIX) {
     return "unflocaltoviewmat";
   }
-  else if (builtin == GPU_INVERSE_LOC_TO_VIEW_MATRIX) {
+  if (builtin == GPU_INVERSE_LOC_TO_VIEW_MATRIX) {
     return "unfinvlocaltoviewmat";
   }
-  else if (builtin == GPU_VIEW_POSITION) {
+  if (builtin == GPU_VIEW_POSITION) {
     return "varposition";
   }
-  else if (builtin == GPU_WORLD_NORMAL) {
+  if (builtin == GPU_WORLD_NORMAL) {
     return "varwnormal";
   }
-  else if (builtin == GPU_VIEW_NORMAL) {
+  if (builtin == GPU_VIEW_NORMAL) {
     return "varnormal";
   }
-  else if (builtin == GPU_OBJECT_COLOR) {
+  if (builtin == GPU_OBJECT_COLOR) {
     return "unfobjectcolor";
   }
-  else if (builtin == GPU_AUTO_BUMPSCALE) {
+  if (builtin == GPU_AUTO_BUMPSCALE) {
     return "unfobautobumpscale";
   }
-  else if (builtin == GPU_CAMERA_TEXCO_FACTORS) {
+  if (builtin == GPU_CAMERA_TEXCO_FACTORS) {
     return "unfcameratexfactors";
   }
-  else if (builtin == GPU_PARTICLE_SCALAR_PROPS) {
+  if (builtin == GPU_PARTICLE_SCALAR_PROPS) {
     return "unfparticlescalarprops";
   }
-  else if (builtin == GPU_PARTICLE_LOCATION) {
+  if (builtin == GPU_PARTICLE_LOCATION) {
     return "unfparticleco";
   }
-  else if (builtin == GPU_PARTICLE_VELOCITY) {
+  if (builtin == GPU_PARTICLE_VELOCITY) {
     return "unfparticlevel";
   }
-  else if (builtin == GPU_PARTICLE_ANG_VELOCITY) {
+  if (builtin == GPU_PARTICLE_ANG_VELOCITY) {
     return "unfparticleangvel";
   }
-  else if (builtin == GPU_OBJECT_INFO) {
+  if (builtin == GPU_OBJECT_INFO) {
     return "unfobjectinfo";
   }
-  else if (builtin == GPU_BARYCENTRIC_TEXCO) {
+  if (builtin == GPU_BARYCENTRIC_TEXCO) {
     return "unfbarycentrictex";
   }
-  else if (builtin == GPU_BARYCENTRIC_DIST) {
+  if (builtin == GPU_BARYCENTRIC_DIST) {
     return "unfbarycentricdist";
   }
-  else {
-    return "";
-  }
+  return "";
 }
 
 static void codegen_set_unique_ids(GPUNodeGraph *graph)
@@ -688,7 +686,7 @@ static char *code_generate_vertex(GPUNodeGraph *graph,
   BLI_dynstr_append(ds, "#define USE_ATTR\n\n");
 
   BLI_dynstr_append(ds, vert_code);
-  BLI_dynstr_append(ds, "\n");
+  BLI_dynstr_append(ds, "\n\n");
 
   BLI_dynstr_append(ds, "void pass_attr(vec3 position, mat3 normalmat, mat4 modelmatinv) {\n");
 
@@ -757,15 +755,16 @@ static char *code_generate_geometry(GPUNodeGraph *graph,
 
   /* Generate varying assignments. */
   BLI_dynstr_append(ds, "#define USE_ATTR\n");
-  BLI_dynstr_append(ds, "void pass_attr(const int vert) {\n");
+  /* This needs to be a define. Some drivers don't like variable vert index inside dataAttrIn. */
+  BLI_dynstr_append(ds, "#define pass_attr(vert) {\\\n");
 
   if (builtins & GPU_BARYCENTRIC_TEXCO) {
-    BLI_dynstr_append(ds, "  dataAttrOut.barycentricTexCo = calc_barycentric_co(vert);\n");
+    BLI_dynstr_append(ds, "dataAttrOut.barycentricTexCo = calc_barycentric_co(vert);\\\n");
   }
 
   LISTBASE_FOREACH (GPUMaterialAttribute *, attr, &graph->attributes) {
     /* TODO let shader choose what to do depending on what the attribute is. */
-    BLI_dynstr_appendf(ds, "  dataAttrOut.var%d = dataAttrIn[vert].var%d;\n", attr->id, attr->id);
+    BLI_dynstr_appendf(ds, "dataAttrOut.var%d = dataAttrIn[vert].var%d;\\\n", attr->id, attr->id);
   }
   BLI_dynstr_append(ds, "}\n\n");
 
@@ -992,20 +991,8 @@ bool GPU_pass_compile(GPUPass *pass, const char *shname)
         shader = NULL;
       }
     }
-    else if (!BLI_thread_is_main() && GPU_context_local_shaders_workaround()) {
-      pass->binary.content = GPU_shader_get_binary(
-          shader, &pass->binary.format, &pass->binary.len);
-      GPU_shader_free(shader);
-      shader = NULL;
-    }
-
     pass->shader = shader;
     pass->compiled = true;
-  }
-  else if (pass->binary.content && BLI_thread_is_main()) {
-    pass->shader = GPU_shader_load_from_binary(
-        pass->binary.content, pass->binary.format, pass->binary.len, shname);
-    MEM_SAFE_FREE(pass->binary.content);
   }
 
   return success;
@@ -1027,9 +1014,6 @@ static void gpu_pass_free(GPUPass *pass)
   MEM_SAFE_FREE(pass->geometrycode);
   MEM_SAFE_FREE(pass->vertexcode);
   MEM_SAFE_FREE(pass->defines);
-  if (pass->binary.content) {
-    MEM_freeN(pass->binary.content);
-  }
   MEM_freeN(pass);
 }
 

@@ -21,8 +21,7 @@
  * \ingroup gpu
  */
 
-#ifndef __GPU_TEXTURE_H__
-#define __GPU_TEXTURE_H__
+#pragma once
 
 #include "BLI_utildefines.h"
 
@@ -276,8 +275,10 @@ void GPU_texture_mipmap_mode(GPUTexture *tex, bool use_mipmap, bool use_filter);
 void GPU_texture_wrap_mode(GPUTexture *tex, bool use_repeat, bool use_clamp);
 void GPU_texture_swizzle_set(GPUTexture *tex, const char swizzle[4]);
 
+/* TODO should be private internal functions. */
 void GPU_texture_attach_framebuffer(GPUTexture *tex, struct GPUFrameBuffer *fb, int attachment);
-int GPU_texture_detach_framebuffer(GPUTexture *tex, struct GPUFrameBuffer *fb);
+void GPU_texture_detach_framebuffer(GPUTexture *tex, struct GPUFrameBuffer *fb);
+int GPU_texture_framebuffer_attachment_get(GPUTexture *tex, struct GPUFrameBuffer *fb);
 
 int GPU_texture_target(const GPUTexture *tex);
 int GPU_texture_width(const GPUTexture *tex);
@@ -302,5 +303,3 @@ void GPU_sampler_icon_bind(int number);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* __GPU_TEXTURE_H__ */

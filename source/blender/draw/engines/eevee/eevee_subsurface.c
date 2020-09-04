@@ -166,7 +166,7 @@ void EEVEE_subsurface_output_init(EEVEE_ViewLayerData *UNUSED(sldata),
    * pass in look dev mode active. `texture_created` will make sure that newly created textures
    * are cleared. */
   if (effects->taa_current_sample == 1 || texture_created) {
-    float clear[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    const float clear[4] = {0.0f, 0.0f, 0.0f, 0.0f};
     GPU_framebuffer_bind(fbl->sss_accum_fb);
     GPU_framebuffer_clear_color(fbl->sss_accum_fb, clear);
   }
@@ -212,7 +212,7 @@ void EEVEE_subsurface_add_pass(EEVEE_ViewLayerData *sldata,
   GPUTexture **depth_src = GPU_depth_blitting_workaround() ? &effects->sss_stencil : &dtxl->depth;
 
   struct GPUTexture *sss_tex_profile = NULL;
-  struct GPUUniformBuffer *sss_profile = GPU_material_sss_profile_get(
+  struct GPUUniformBuf *sss_profile = GPU_material_sss_profile_get(
       gpumat, stl->effects->sss_sample_count, &sss_tex_profile);
 
   if (!sss_profile) {
@@ -282,7 +282,7 @@ void EEVEE_subsurface_data_render(EEVEE_ViewLayerData *UNUSED(sldata), EEVEE_Dat
   EEVEE_EffectsInfo *effects = stl->effects;
 
   if ((effects->enabled_effects & EFFECT_SSS) != 0) {
-    float clear[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    const float clear[4] = {0.0f, 0.0f, 0.0f, 0.0f};
     /* Clear sss_data texture only... can this be done in a more clever way? */
     GPU_framebuffer_bind(fbl->sss_clear_fb);
     GPU_framebuffer_clear_color(fbl->sss_clear_fb, clear);
@@ -320,7 +320,7 @@ void EEVEE_subsurface_compute(EEVEE_ViewLayerData *sldata, EEVEE_Data *vedata)
   EEVEE_EffectsInfo *effects = stl->effects;
 
   if ((effects->enabled_effects & EFFECT_SSS) != 0) {
-    float clear[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    const float clear[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
     DRW_stats_group_start("SSS");
 

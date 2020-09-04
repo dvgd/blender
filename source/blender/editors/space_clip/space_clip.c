@@ -237,7 +237,7 @@ static void clip_area_sync_frame_from_scene(ScrArea *area, Scene *scene)
 
 /* ******************** default callbacks for clip space ***************** */
 
-static SpaceLink *clip_new(const ScrArea *area, const Scene *scene)
+static SpaceLink *clip_create(const ScrArea *area, const Scene *scene)
 {
   ARegion *region;
   SpaceClip *sc;
@@ -926,7 +926,6 @@ static void clip_main_region_draw(const bContext *C, ARegion *region)
 
   /* clear and setup matrix */
   UI_ThemeClearColor(TH_BACK);
-  GPU_clear(GPU_COLOR_BIT);
 
   /* data... */
   movieclip_main_area_set_view2d(C, region);
@@ -1054,7 +1053,6 @@ static void graph_region_draw(const bContext *C, ARegion *region)
 
   /* clear and setup matrix */
   UI_ThemeClearColor(TH_BACK);
-  GPU_clear(GPU_COLOR_BIT);
 
   UI_view2d_view_ortho(v2d);
 
@@ -1099,7 +1097,6 @@ static void dopesheet_region_draw(const bContext *C, ARegion *region)
 
   /* clear and setup matrix */
   UI_ThemeClearColor(TH_BACK);
-  GPU_clear(GPU_COLOR_BIT);
 
   UI_view2d_view_ortho(v2d);
 
@@ -1172,7 +1169,6 @@ static void clip_channels_region_draw(const bContext *C, ARegion *region)
 
   /* clear and setup matrix */
   UI_ThemeClearColor(TH_BACK);
-  GPU_clear(GPU_COLOR_BIT);
 
   UI_view2d_view_ortho(v2d);
 
@@ -1351,7 +1347,7 @@ void ED_spacetype_clip(void)
   st->spaceid = SPACE_CLIP;
   strncpy(st->name, "Clip", BKE_ST_MAXNAME);
 
-  st->new = clip_new;
+  st->create = clip_create;
   st->free = clip_free;
   st->init = clip_init;
   st->duplicate = clip_duplicate;

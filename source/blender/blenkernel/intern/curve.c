@@ -146,6 +146,12 @@ IDTypeInfo IDType_ID_CU = {
     .free_data = curve_free_data,
     .make_local = NULL,
     .foreach_id = curve_foreach_id,
+    .foreach_cache = NULL,
+
+    .blend_write = NULL,
+    .blend_read_data = NULL,
+    .blend_read_lib = NULL,
+    .blend_read_expand = NULL,
 };
 
 static int cu_isectLL(const float v1[3],
@@ -262,7 +268,7 @@ ListBase *BKE_curve_editNurbs_get(Curve *cu)
   return NULL;
 }
 
-short BKE_curve_type_get(Curve *cu)
+short BKE_curve_type_get(const Curve *cu)
 {
   Nurb *nu;
   int type = cu->type;
@@ -725,7 +731,7 @@ float BKE_nurb_calc_length(const Nurb *nu, int resolution)
                                         bezt->vec[1][j],
                                         points + j,
                                         resolu,
-                                        3 * sizeof(float));
+                                        sizeof(float[3]));
         }
 
         prevpntsit = pntsit = points;
@@ -2301,7 +2307,7 @@ static void make_bevel_list_3D_tangent(BevList *bl)
   while (nr--) {
     /* make perpendicular, modify tan in place, is ok */
     float cross_tmp[3];
-    float zero[3] = {0, 0, 0};
+    const float zero[3] = {0, 0, 0};
 
     cross_v3_v3v3(cross_tmp, bevp1->tan, bevp1->dir);
     normalize_v3(cross_tmp);
@@ -3315,8 +3321,9 @@ static void calchandlesNurb_intern(Nurb *nu, eBezTriple_Flag handle_sel_flag, bo
   }
 }
 
-/* A utility function for allocating a number of arrays of the same length
- * with easy error checking and deallocation, and an easy way to add or remove
+/**
+ * A utility function for allocating a number of arrays of the same length
+ * with easy error checking and de-allocation, and an easy way to add or remove
  * arrays that are processed in this way when changing code.
  *
  * floats, chars: NULL-terminated arrays of pointers to array pointers that need to be allocated.
@@ -3598,7 +3605,10 @@ static void bezier_clamp(
 }
 
 /* write changes to a bezier handle */
-static void bezier_output_handle_inner(BezTriple *bezt, bool right, float newval[3], bool endpoint)
+static void bezier_output_handle_inner(BezTriple *bezt,
+                                       bool right,
+                                       const float newval[3],
+                                       bool endpoint)
 {
   float tmp[3];
 
@@ -5110,8 +5120,11 @@ bool BKE_curve_center_bounds(Curve *cu, float cent[3])
   return false;
 }
 
-void BKE_curve_transform_ex(
-    Curve *cu, float mat[4][4], const bool do_keys, const bool do_props, const float unit_scale)
+void BKE_curve_transform_ex(Curve *cu,
+                            const float mat[4][4],
+                            const bool do_keys,
+                            const bool do_props,
+                            const float unit_scale)
 {
   Nurb *nu;
   BPoint *bp;
@@ -5174,13 +5187,13 @@ void BKE_curve_transform_ex(
   }
 }
 
-void BKE_curve_transform(Curve *cu, float mat[4][4], const bool do_keys, const bool do_props)
+void BKE_curve_transform(Curve *cu, const float mat[4][4], const bool do_keys, const bool do_props)
 {
   float unit_scale = mat4_to_scale(mat);
   BKE_curve_transform_ex(cu, mat, do_keys, do_props, unit_scale);
 }
 
-void BKE_curve_translate(Curve *cu, float offset[3], const bool do_keys)
+void BKE_curve_translate(Curve *cu, const float offset[3], const bool do_keys)
 {
   ListBase *nurb_lb = BKE_curve_nurbs_get(cu);
   Nurb *nu;

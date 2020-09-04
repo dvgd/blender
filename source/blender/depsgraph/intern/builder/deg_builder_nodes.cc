@@ -1129,9 +1129,11 @@ void DepsgraphNodeBuilder::build_rigidbody(Scene *scene)
       if (object->rigidbody_object == nullptr) {
         continue;
       }
+
       if (object->rigidbody_object->type == RBO_TYPE_PASSIVE) {
         continue;
       }
+
       /* Create operation for flushing results. */
       /* Object's transform component - where the rigidbody operation
        * lives. */
@@ -1817,6 +1819,9 @@ void DepsgraphNodeBuilder::build_scene_sequencer(Scene *scene)
   if (scene->ed == nullptr) {
     return;
   }
+  if (built_map_.checkIsBuiltAndTag(scene, BuilderMap::TAG_SCENE_SEQUENCER)) {
+    return;
+  }
   build_scene_audio(scene);
   Scene *scene_cow = get_cow_datablock(scene);
   add_operation_node(&scene->id,
@@ -1825,7 +1830,7 @@ void DepsgraphNodeBuilder::build_scene_sequencer(Scene *scene)
                      function_bind(BKE_scene_eval_sequencer_sequences, _1, scene_cow));
   /* Make sure data for sequences is in the graph. */
   Sequence *seq;
-  SEQ_BEGIN (scene->ed, seq) {
+  SEQ_ALL_BEGIN (scene->ed, seq) {
     build_idproperties(seq->prop);
     if (seq->sound != nullptr) {
       build_sound(seq->sound);
@@ -1842,7 +1847,7 @@ void DepsgraphNodeBuilder::build_scene_sequencer(Scene *scene)
     }
     /* TODO(sergey): Movie clip, scene, camera, mask. */
   }
-  SEQ_END;
+  SEQ_ALL_END;
 }
 
 void DepsgraphNodeBuilder::build_scene_audio(Scene *scene)

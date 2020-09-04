@@ -37,6 +37,7 @@
 #include "BKE_bvhutils.h"
 #include "BKE_mesh.h"
 #include "BKE_mesh_runtime.h"
+#include "BKE_mesh_wrapper.h"
 #include "BKE_modifier.h"
 
 #include "ED_armature.h"
@@ -223,7 +224,7 @@ static LaplacianSystem *laplacian_system_construct_begin(int totvert, int totfac
 
   sys->verts = MEM_callocN(sizeof(float *) * totvert, "LaplacianSystemVerts");
   sys->vpinned = MEM_callocN(sizeof(char) * totvert, "LaplacianSystemVpinned");
-  sys->faces = MEM_callocN(sizeof(int) * 3 * totface, "LaplacianSystemFaces");
+  sys->faces = MEM_callocN(sizeof(int[3]) * totface, "LaplacianSystemFaces");
 
   sys->totvert = 0;
   sys->totface = 0;
@@ -296,7 +297,7 @@ static void laplacian_system_construct_end(LaplacianSystem *sys)
   }
 
   if (sys->storeweights) {
-    sys->fweights = MEM_callocN(sizeof(float) * 3 * totface, "LaplacianFWeight");
+    sys->fweights = MEM_callocN(sizeof(float[3]) * totface, "LaplacianFWeight");
   }
 
   for (a = 0, face = sys->faces; a < totface; a++, face++) {
@@ -568,7 +569,7 @@ static void heat_calc_vnormals(LaplacianSystem *sys)
   float fnor[3];
   int a, v1, v2, v3, (*face)[3];
 
-  sys->heat.vnors = MEM_callocN(sizeof(float) * 3 * sys->totvert, "HeatVNors");
+  sys->heat.vnors = MEM_callocN(sizeof(float[3]) * sys->totvert, "HeatVNors");
 
   for (a = 0, face = sys->faces; a < sys->totface; a++, face++) {
     v1 = (*face)[0];
@@ -1761,8 +1762,11 @@ void ED_mesh_deform_bind_callback(MeshDeformModifierData *mmd,
 
   memset(&mdb, 0, sizeof(MeshDeformBind));
 
+  /* No need to support other kinds of mesh data as binding is a one-off action. */
+  BKE_mesh_wrapper_ensure_mdata(cagemesh);
+
   /* get mesh and cage mesh */
-  mdb.vertexcos = MEM_callocN(sizeof(float) * 3 * totvert, "MeshDeformCos");
+  mdb.vertexcos = MEM_callocN(sizeof(float[3]) * totvert, "MeshDeformCos");
   mdb.totvert = totvert;
 
   mdb.cagemesh = cagemesh;

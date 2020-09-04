@@ -230,11 +230,11 @@ bool manta_needs_realloc(MANTA *fluid, FluidModifierData *fmd)
   return fluid->needsRealloc(fmd);
 }
 
-void manta_update_pointers(struct MANTA *fluid, struct FluidModifierData *fmd)
+void manta_update_pointers(struct MANTA *fluid, struct FluidModifierData *fmd, bool flush)
 {
   if (!fluid || !fmd)
     return;
-  fluid->updatePointers(fmd);
+  fluid->updatePointers(fmd, flush);
 }
 
 /* Fluid accessors */
@@ -456,7 +456,7 @@ int manta_smoke_ensure_fire(MANTA *smoke, struct FluidModifierData *fmd)
   if (!smoke || !fmd)
     return 0;
 
-  int result = smoke->initFire(fmd);
+  bool result = smoke->initFire(fmd);
   if (smoke->usingNoise()) {
     result &= smoke->initFireHigh(fmd);
   }
@@ -468,7 +468,7 @@ int manta_smoke_ensure_colors(MANTA *smoke, struct FluidModifierData *fmd)
   if (!smoke || !fmd)
     return 0;
 
-  int result = smoke->initColors(fmd);
+  bool result = smoke->initColors(fmd);
   if (smoke->usingNoise()) {
     result &= smoke->initColorsHigh(fmd);
   }

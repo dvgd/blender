@@ -245,7 +245,7 @@ static void eevee_lookdev_apply_taa(const EEVEE_EffectsInfo *effects,
   if (DRW_state_is_image_render() || ((effects->enabled_effects & EFFECT_TAA) != 0)) {
     double ht_point[2];
     double ht_offset[2] = {0.0, 0.0};
-    uint ht_primes[2] = {2, 3};
+    const uint ht_primes[2] = {2, 3};
     float ofs[2];
 
     BLI_halton_2d(ht_primes, ht_offset, effects->taa_current_sample, ht_point);
@@ -275,7 +275,7 @@ void EEVEE_lookdev_draw(EEVEE_Data *vedata)
     common->ao_dist = 0.0f;
     common->ao_factor = 0.0f;
     common->ao_settings = 0.0f;
-    DRW_uniformbuffer_update(sldata->common_ubo, common);
+    GPU_uniformbuf_update(sldata->common_ubo, common);
 
     /* override matrices */
     float winmat[4][4], viewmat[4][4];
@@ -330,6 +330,8 @@ void EEVEE_lookdev_draw(EEVEE_Data *vedata)
                                  effects->sphere_size);
 
     DRW_draw_pass(psl->lookdev_glossy_pass);
+
+    GPU_framebuffer_viewport_reset(fb);
 
     DRW_stats_group_end();
 

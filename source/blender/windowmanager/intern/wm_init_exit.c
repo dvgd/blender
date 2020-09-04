@@ -85,6 +85,7 @@
 
 #ifdef WITH_PYTHON
 #  include "BPY_extern.h"
+#  include "BPY_extern_python.h"
 #endif
 
 #include "GHOST_C-api.h"
@@ -121,6 +122,7 @@
 #include "UI_interface.h"
 #include "UI_resources.h"
 
+#include "GPU_context.h"
 #include "GPU_init_exit.h"
 #include "GPU_material.h"
 
@@ -171,7 +173,7 @@ void WM_init_state_start_with_console_set(bool value)
  */
 static bool opengl_is_init = false;
 
-void WM_init_opengl(Main *UNUSED(bmain))
+void WM_init_opengl(void)
 {
   /* must be called only once */
   BLI_assert(opengl_is_init == false);
@@ -208,7 +210,7 @@ static void sound_jack_sync_callback(Main *bmain, int mode, double time)
       continue;
     }
     ViewLayer *view_layer = WM_window_get_active_view_layer(window);
-    Depsgraph *depsgraph = BKE_scene_get_depsgraph(bmain, scene, view_layer, false);
+    Depsgraph *depsgraph = BKE_scene_get_depsgraph(scene, view_layer);
     if (depsgraph == NULL) {
       continue;
     }
@@ -312,7 +314,7 @@ void WM_init(bContext *C, int argc, const char **argv)
     /* sets 3D mouse deadzone */
     WM_ndof_deadzone_set(U.ndof_deadzone);
 #endif
-    WM_init_opengl(G_MAIN);
+    WM_init_opengl();
 
     if (!WM_platform_support_perform_checks()) {
       exit(-1);
@@ -347,8 +349,6 @@ void WM_init(bContext *C, int argc, const char **argv)
 
   BKE_material_copybuf_clear();
   ED_render_clear_mtex_copybuf();
-
-  // GPU_blend_set_func(GPU_SRC_ALPHA, GPU_ONE_MINUS_SRC_ALPHA, GPU_ONE, GPU_ONE_MINUS_SRC_ALPHA);
 
   wm_history_file_read();
 
@@ -633,6 +633,8 @@ void WM_exit_ex(bContext *C, const bool do_python)
   BKE_blender_userdef_data_free(&U, false);
 
   RNA_exit(); /* should be after BPY_python_end so struct python slots are cleared */
+
+  GPU_backend_exit();
 
   wm_ghost_exit();
 

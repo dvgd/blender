@@ -91,7 +91,7 @@ static ARegion *file_tool_props_region_ensure(ScrArea *area, ARegion *region_pre
 
 /* ******************** default callbacks for file space ***************** */
 
-static SpaceLink *file_new(const ScrArea *UNUSED(area), const Scene *UNUSED(scene))
+static SpaceLink *file_create(const ScrArea *UNUSED(area), const Scene *UNUSED(scene))
 {
   ARegion *region;
   SpaceFile *sfile;
@@ -449,7 +449,6 @@ static void file_main_region_draw(const bContext *C, ARegion *region)
   FileSelectParams *params = ED_fileselect_get_params(sfile);
 
   View2D *v2d = &region->v2d;
-  float col[3];
 
   /* Needed, because filelist is not initialized on loading */
   if (!sfile->files || filelist_empty(sfile->files)) {
@@ -457,9 +456,7 @@ static void file_main_region_draw(const bContext *C, ARegion *region)
   }
 
   /* clear and setup matrix */
-  UI_GetThemeColor3fv(TH_BACK, col);
-  GPU_clear_color(col[0], col[1], col[2], 1.0f);
-  GPU_clear(GPU_COLOR_BIT);
+  UI_ThemeClearColor(TH_BACK);
 
   /* Allow dynamically sliders to be set, saves notifiers etc. */
 
@@ -665,10 +662,10 @@ static bool filepath_drop_poll(bContext *C,
   if (drag->type == WM_DRAG_PATH) {
     SpaceFile *sfile = CTX_wm_space_file(C);
     if (sfile) {
-      return 1;
+      return true;
     }
   }
-  return 0;
+  return false;
 }
 
 static void filepath_drop_copy(wmDrag *drag, wmDropBox *drop)
@@ -693,7 +690,7 @@ void ED_spacetype_file(void)
   st->spaceid = SPACE_FILE;
   strncpy(st->name, "File", BKE_ST_MAXNAME);
 
-  st->new = file_new;
+  st->create = file_create;
   st->free = file_free;
   st->init = file_init;
   st->exit = file_exit;

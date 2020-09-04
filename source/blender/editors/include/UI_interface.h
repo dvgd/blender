@@ -21,8 +21,7 @@
  * \ingroup editorui
  */
 
-#ifndef __UI_INTERFACE_H__
-#define __UI_INTERFACE_H__
+#pragma once
 
 #include "BLI_compiler_attrs.h"
 #include "BLI_sys_types.h" /* size_t */
@@ -58,6 +57,7 @@ struct bNodeSocket;
 struct bNodeTree;
 struct bScreen;
 struct rcti;
+struct uiButSearch;
 struct uiFontStyle;
 struct uiList;
 struct uiStyle;
@@ -372,12 +372,13 @@ typedef enum {
   UI_BTYPE_SEPR_SPACER = 56 << 9,
   /** Resize handle (resize uilist). */
   UI_BTYPE_GRIP = 57 << 9,
+  UI_BTYPE_DECORATOR = 58 << 9,
 } eButType;
 
 #define BUTTYPE (63 << 9)
 
 /** Gradient types, for color picker #UI_BTYPE_HSVCUBE etc. */
-enum {
+typedef enum eButGradientType {
   UI_GRAD_SV = 0,
   UI_GRAD_HV = 1,
   UI_GRAD_HS = 2,
@@ -387,9 +388,7 @@ enum {
 
   UI_GRAD_V_ALT = 9,
   UI_GRAD_L_ALT = 10,
-};
-
-#define UI_PALETTE_COLOR 20
+} eButGradientType;
 
 /* Drawing
  *
@@ -501,7 +500,7 @@ typedef int (*uiButCompleteFunc)(struct bContext *C, char *str, void *arg);
 /* Search types. */
 typedef struct ARegion *(*uiButSearchCreateFn)(struct bContext *C,
                                                struct ARegion *butregion,
-                                               uiBut *but);
+                                               struct uiButSearch *search_but);
 typedef void (*uiButSearchUpdateFn)(const struct bContext *C,
                                     void *arg,
                                     const char *str,
@@ -538,7 +537,7 @@ typedef bool (*uiMenuStepFunc)(struct bContext *C, int direction, void *arg1);
 bool UI_but_has_tooltip_label(const uiBut *but);
 bool UI_but_is_tool(const uiBut *but);
 bool UI_but_is_utf8(const uiBut *but);
-#define UI_but_is_decorator(but) ((but)->func == ui_but_anim_decorate_cb)
+#define UI_but_is_decorator(but) ((but)->type == UI_BTYPE_DECORATOR)
 
 bool UI_block_is_empty_ex(const uiBlock *block, const bool skip_title);
 bool UI_block_is_empty(const uiBlock *block);
@@ -732,6 +731,8 @@ bool UI_but_flag_is_set(uiBut *but, int flag);
 
 void UI_but_drawflag_enable(uiBut *but, int flag);
 void UI_but_drawflag_disable(uiBut *but, int flag);
+
+void UI_but_disable(uiBut *but, const char *disabled_hint);
 
 void UI_but_type_set_menu_from_pulldown(uiBut *but);
 
@@ -1668,19 +1669,13 @@ void UI_panels_end(const struct bContext *C, struct ARegion *region, int *r_x, i
 void UI_panels_draw(const struct bContext *C, struct ARegion *region);
 
 struct Panel *UI_panel_find_by_type(struct ListBase *lb, struct PanelType *pt);
-struct Panel *UI_panel_begin(struct ScrArea *area,
-                             struct ARegion *region,
+struct Panel *UI_panel_begin(struct ARegion *region,
                              struct ListBase *lb,
                              uiBlock *block,
                              struct PanelType *pt,
                              struct Panel *panel,
                              bool *r_open);
-void UI_panel_end(const struct ScrArea *area,
-                  const struct ARegion *region,
-                  uiBlock *block,
-                  int width,
-                  int height,
-                  bool open);
+void UI_panel_end(const struct ARegion *region, uiBlock *block, int width, int height, bool open);
 
 void UI_panels_scale(struct ARegion *region, float new_width);
 void UI_panel_label_offset(struct uiBlock *block, int *r_x, int *r_y);
@@ -1705,20 +1700,20 @@ void UI_panel_category_draw_all(struct ARegion *region, const char *category_id_
 
 struct PanelType *UI_paneltype_find(int space_id, int region_id, const char *idname);
 
+/* Panel custom data. */
+struct PointerRNA *UI_panel_custom_data_get(const struct Panel *panel);
 struct PointerRNA *UI_region_panel_custom_data_under_cursor(const struct bContext *C,
                                                             const struct wmEvent *event);
 void UI_panel_custom_data_set(struct Panel *panel, struct PointerRNA *custom_data);
 
 /* Polyinstantiated panels for representing a list of data. */
-struct Panel *UI_panel_add_instanced(struct ScrArea *area,
-                                     struct ARegion *region,
+struct Panel *UI_panel_add_instanced(struct ARegion *region,
                                      struct ListBase *panels,
                                      char *panel_idname,
-                                     int list_index,
                                      struct PointerRNA *custom_data);
-void UI_panels_free_instanced(struct bContext *C, struct ARegion *region);
+void UI_panels_free_instanced(const struct bContext *C, struct ARegion *region);
 
-#define LIST_PANEL_UNIQUE_STR_LEN 4
+#define INSTANCED_PANEL_UNIQUE_STR_LEN 4
 void UI_list_panel_unique_str(struct Panel *panel, char *r_name);
 
 void UI_panel_set_expand_from_list_data(const struct bContext *C, struct Panel *panel);
@@ -1871,6 +1866,8 @@ uiBlock *uiLayoutGetBlock(uiLayout *layout);
 void uiLayoutSetFunc(uiLayout *layout, uiMenuHandleFunc handlefunc, void *argv);
 void uiLayoutSetContextPointer(uiLayout *layout, const char *name, struct PointerRNA *ptr);
 void uiLayoutContextCopy(uiLayout *layout, struct bContextStore *context);
+struct wmOperatorType *UI_but_operatortype_get_from_enum_menu(struct uiBut *but,
+                                                              PropertyRNA **r_prop);
 struct MenuType *UI_but_menutype_get(uiBut *but);
 struct PanelType *UI_but_paneltype_get(uiBut *but);
 void UI_menutype_draw(struct bContext *C, struct MenuType *mt, struct uiLayout *layout);
@@ -1930,8 +1927,6 @@ uiLayout *uiLayoutGridFlow(uiLayout *layout,
 uiLayout *uiLayoutBox(uiLayout *layout);
 uiLayout *uiLayoutListBox(uiLayout *layout,
                           struct uiList *ui_list,
-                          struct PointerRNA *ptr,
-                          struct PropertyRNA *prop,
                           struct PointerRNA *actptr,
                           struct PropertyRNA *actprop);
 uiLayout *uiLayoutAbsolute(uiLayout *layout, bool align);
@@ -2415,6 +2410,9 @@ void uiItemTabsEnumR_prop(uiLayout *layout,
                           PropertyRNA *prop,
                           bool icon_only);
 
+/* Only for testing, inspecting layouts. */
+const char *UI_layout_introspect(uiLayout *layout);
+
 /* UI Operators */
 typedef struct uiDragColorHandle {
   float color[3];
@@ -2577,5 +2575,3 @@ void UI_interface_tag_script_reload(void);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* __UI_INTERFACE_H__ */

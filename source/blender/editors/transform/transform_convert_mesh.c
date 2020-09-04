@@ -507,7 +507,7 @@ static void editmesh_mirror_data_calc(BMEditMesh *em,
 
     index[a] = MEM_mallocN(totvert * sizeof(*index[a]), __func__);
     EDBM_verts_mirror_cache_begin_ex(
-        em, a, false, test_selected_only, use_topology, TRANSFORM_MAXDIST_MIRROR, index[a]);
+        em, a, false, test_selected_only, true, use_topology, TRANSFORM_MAXDIST_MIRROR, index[a]);
 
     flag = TD_MIRROR_X << a;
     BM_ITER_MESH_INDEX (eve, &iter, bm, BM_VERTS_OF_MESH, i) {
@@ -754,7 +754,8 @@ void createTransEditVerts(TransInfo *t)
     if (tc->use_mirror_axis_any) {
       bool use_topology = (me->editflag & ME_EDIT_MIRROR_TOPO) != 0;
       bool use_select = (t->flag & T_PROP_EDIT) == 0;
-      bool mirror_axis[3] = {tc->use_mirror_axis_x, tc->use_mirror_axis_y, tc->use_mirror_axis_z};
+      const bool mirror_axis[3] = {
+          tc->use_mirror_axis_x, tc->use_mirror_axis_y, tc->use_mirror_axis_z};
       editmesh_mirror_data_calc(em, use_select, use_topology, mirror_axis, &mirror_data);
 
       if (mirror_data.vert_map) {

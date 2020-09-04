@@ -26,8 +26,7 @@
  * Only included in WM_types.h and lower level files.
  */
 
-#ifndef __WM_GIZMO_TYPES_H__
-#define __WM_GIZMO_TYPES_H__
+#pragma once
 
 #include "BLI_compiler_attrs.h"
 
@@ -245,7 +244,7 @@ struct wmGizmo {
   int drag_part;
 
   /** Distance to bias this gizmo above others when picking
-   * (in worldspace, scaled by the gizmo scale - when used). */
+   * (in world-space, scaled by the gizmo scale - when used). */
   float select_bias;
 
   /**
@@ -513,5 +512,3 @@ typedef enum eWM_GizmoFlagMapDrawStep {
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* __WM_GIZMO_TYPES_H__ */
